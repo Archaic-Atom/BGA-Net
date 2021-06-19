@@ -90,16 +90,16 @@ class TrainModel(object):
 
                             # get the acc and loss, 3 piexl error, acc[1] means 3 piexl
                             acc = MatchingAcc_v2(coarse_map, imgGround[start:end])
-                            ave_coarse_acc = ave_coarse_acc + acc[1]
+                            ave_coarse_acc += acc[1]
                             acc = MatchingAcc_v2(refine_map, imgGround[start:end])
-                            ave_refine_acc = ave_refine_acc + acc[1]
+                            ave_refine_acc += acc[1]
 
                             res = tf.nn.softmax(coarse_cls_map, axis=-1)
                             res = tf.argmax(res, 3)
                             acc, acc_op, mIoU, mIoU_op = IoU(
                                 res, imgGround_Mask[start:end], LABLE_NUM)
-                            ave_coarse_pixel_acc = ave_coarse_pixel_acc + acc
-                            ave_coarse_mIoU_acc = ave_coarse_mIoU_acc + mIoU
+                            ave_coarse_pixel_acc += acc
+                            ave_coarse_mIoU_acc += mIoU
                             tower_coarse_acc_op.append(acc_op)
                             tower_coarse_mIoU_op.append(mIoU_op)
 
@@ -107,8 +107,8 @@ class TrainModel(object):
                             res = tf.argmax(res, 3)
                             acc, acc_op, mIoU, mIoU_op = IoU(
                                 res, imgGround_Mask[start:end], LABLE_NUM)
-                            ave_refine_pixel_acc = ave_refine_pixel_acc + acc
-                            ave_refine_mIoU_acc = ave_refine_mIoU_acc + mIoU
+                            ave_refine_pixel_acc += acc
+                            ave_refine_mIoU_acc += mIoU
                             tower_refine_acc_op.append(acc_op)
                             tower_refine_mIoU_op.append(mIoU_op)
 
@@ -121,14 +121,14 @@ class TrainModel(object):
                             loss_2 = MAE_Loss(coarse_map, imgGround[start:end])
                             loss_3 = MAE_Loss(refine_map, imgGround[start:end])
 
-                            ave_loss_0 = ave_loss_0 + loss_0
-                            ave_loss_1 = ave_loss_1 + loss_1
-                            ave_loss_2 = ave_loss_2 + loss_2
-                            ave_loss_3 = ave_loss_3 + loss_3
+                            ave_loss_0 += loss_0
+                            ave_loss_1 += loss_1
+                            ave_loss_2 += loss_2
+                            ave_loss_3 += loss_3
 
                             loss = loss_0 + loss_2 + (loss_1 + loss_3)
                             loss = L2_loss(loss)
-                            ave_loss = ave_loss + loss
+                            ave_loss += loss
 
                             tower_coarse_map.append(refine_cls_map)
                             tower_refine_map.append(refine_map)
@@ -141,50 +141,43 @@ class TrainModel(object):
                             tower_grads.append(grads)
 
                             Info("Finished init the gpus %d" % i)
-                            # gradients, m = GradientsMAS(loss, self.args.learningRate)
+                                                # gradients, m = GradientsMAS(loss, self.args.learningRate)
             # get the loss and acc
-            ave_loss = ave_loss / self.args.gpu
-            ave_loss_0 = ave_loss_0 / self.args.gpu
-            ave_loss_1 = ave_loss_1 / self.args.gpu
-            ave_loss_2 = ave_loss_2 / self.args.gpu
-            ave_loss_3 = ave_loss_3 / self.args.gpu
-            ave_coarse_acc = ave_coarse_acc / self.args.gpu
-            ave_refine_acc = ave_refine_acc / self.args.gpu
-            ave_coarse_pixel_acc = ave_coarse_pixel_acc / self.args.gpu
-            ave_coarse_mIoU_acc = ave_coarse_mIoU_acc / self.args.gpu
-            ave_refine_pixel_acc = ave_refine_pixel_acc / self.args.gpu
-            ave_refine_mIoU_acc = ave_refine_mIoU_acc / self.args.gpu
+            ave_loss /= self.args.gpu
+            ave_loss_0 /= self.args.gpu
+            ave_loss_1 /= self.args.gpu
+            ave_loss_2 /= self.args.gpu
+            ave_loss_3 /= self.args.gpu
+            ave_coarse_acc /= self.args.gpu
+            ave_refine_acc /= self.args.gpu
+            ave_coarse_pixel_acc /= self.args.gpu
+            ave_coarse_mIoU_acc /= self.args.gpu
+            ave_refine_pixel_acc /= self.args.gpu
+            ave_refine_mIoU_acc /= self.args.gpu
 
             # get the ave grads
             grads = AverageGradients(tower_grads)
             train_step = opt.apply_gradients(grads, global_step=global_step)
 
-            tower_loss = []
-            tower_loss.append(ave_loss)
-            tower_loss.append(ave_loss_0)
-            tower_loss.append(ave_loss_1)
-            tower_loss.append(ave_loss_2)
-            tower_loss.append(ave_loss_3)
-
+            tower_loss = [ave_loss, ave_loss_0, ave_loss_1, ave_loss_2, ave_loss_3]
             # get the res
-            res = []
-            res.append(tower_coarse_map)
-            res.append(tower_refine_map)
-
+            res = [tower_coarse_map, tower_refine_map]
             # get the acc
-            acc = []
-            acc.append(ave_coarse_acc)
-            acc.append(ave_refine_acc)
-            acc.append(ave_coarse_pixel_acc)
-            acc.append(ave_coarse_mIoU_acc)
-            acc.append(ave_refine_pixel_acc)
-            acc.append(ave_refine_mIoU_acc)
+            acc = [
+                ave_coarse_acc,
+                ave_refine_acc,
+                ave_coarse_pixel_acc,
+                ave_coarse_mIoU_acc,
+                ave_refine_pixel_acc,
+                ave_refine_mIoU_acc,
+            ]
 
-            acc_mIoU_op = []
-            acc_mIoU_op.append(tower_coarse_acc_op)
-            acc_mIoU_op.append(tower_coarse_mIoU_op)
-            acc_mIoU_op.append(tower_refine_acc_op)
-            acc_mIoU_op.append(tower_refine_mIoU_op)
+            acc_mIoU_op = [
+                tower_coarse_acc_op,
+                tower_coarse_mIoU_op,
+                tower_refine_acc_op,
+                tower_refine_mIoU_op,
+            ]
 
         return train_step, res, tower_loss, acc, acc_mIoU_op
 
@@ -243,25 +236,25 @@ class TrainModel(object):
                            self.imgR: imgRs,
                            self.imgGround: dispImgGrounds,
                            self.clsImgGround: clsImgGrounds})
-            tr_ave_loss = tr_ave_loss + loss[0]
-            tr_ave_coarse_cls_loss = tr_ave_coarse_cls_loss + loss[1]
-            tr_ave_refine_cls_loss = tr_ave_refine_cls_loss + loss[2]
-            tr_ave_coarse_disp_loss = tr_ave_coarse_disp_loss + loss[3]
-            tr_ave_refine_disp_loss = tr_ave_refine_disp_loss + loss[4]
+            tr_ave_loss += loss[0]
+            tr_ave_coarse_cls_loss += loss[1]
+            tr_ave_refine_cls_loss += loss[2]
+            tr_ave_coarse_disp_loss += loss[3]
+            tr_ave_refine_disp_loss += loss[4]
 
-            tr_ave_coarse_acc = tr_ave_coarse_acc + acc[0]
-            tr_ave_refine_acc = tr_ave_refine_acc + acc[1]
+            tr_ave_coarse_acc += acc[0]
+            tr_ave_refine_acc += acc[1]
 
         # stop the training process, and compute the ave loss and acc
         duration = time.time() - start_time
-        tr_ave_loss = tr_ave_loss / num_tr_batch
-        tr_ave_coarse_cls_loss = tr_ave_coarse_cls_loss / num_tr_batch
-        tr_ave_refine_cls_loss = tr_ave_refine_cls_loss / num_tr_batch
-        tr_ave_coarse_disp_loss = tr_ave_coarse_disp_loss / num_tr_batch
-        tr_ave_refine_disp_loss = tr_ave_refine_disp_loss / num_tr_batch
+        tr_ave_loss /= num_tr_batch
+        tr_ave_coarse_cls_loss /= num_tr_batch
+        tr_ave_refine_cls_loss /= num_tr_batch
+        tr_ave_coarse_disp_loss /= num_tr_batch
+        tr_ave_refine_disp_loss /= num_tr_batch
 
-        tr_ave_coarse_acc = tr_ave_coarse_acc / num_tr_batch
-        tr_ave_refine_acc = tr_ave_refine_acc / num_tr_batch
+        tr_ave_coarse_acc /= num_tr_batch
+        tr_ave_refine_acc /= num_tr_batch
         tr_ave_coarse_pixel_acc = self.acc[2].eval(session=self.sess)
         tr_ave_coarse_mIoU_acc = self.acc[3].eval(session=self.sess)
         tr_ave_refine_pixel_acc = self.acc[4].eval(session=self.sess)
@@ -309,14 +302,14 @@ class TrainModel(object):
                            self.imgR: imgRs,
                            self.imgGround: dispImgGrounds,
                            self.clsImgGround: clsImgGrounds})
-            val_ave_loss = val_ave_loss + loss[0]
-            val_ave_coarse_cls_loss = val_ave_coarse_cls_loss + loss[1]
-            val_ave_refine_cls_loss = val_ave_refine_cls_loss + loss[2]
-            val_ave_coarse_disp_loss = val_ave_coarse_disp_loss + loss[3]
-            val_ave_refine_disp_loss = val_ave_refine_disp_loss + loss[4]
+            val_ave_loss += loss[0]
+            val_ave_coarse_cls_loss += loss[1]
+            val_ave_refine_cls_loss += loss[2]
+            val_ave_coarse_disp_loss += loss[3]
+            val_ave_refine_disp_loss += loss[4]
 
-            val_ave_coarse_acc = val_ave_coarse_acc + acc[0]
-            val_ave_refine_acc = val_ave_refine_acc + acc[1]
+            val_ave_coarse_acc += acc[0]
+            val_ave_refine_acc += acc[1]
             '''
             res = np.array(res)
             for i in range(args.gpu):
@@ -329,14 +322,14 @@ class TrainModel(object):
             '''
         duration = time.time() - start_time
 
-        val_ave_loss = val_ave_loss / num_val_batch
-        val_ave_coarse_cls_loss = val_ave_coarse_cls_loss / num_val_batch
-        val_ave_refine_cls_loss = val_ave_refine_cls_loss / num_val_batch
-        val_ave_coarse_disp_loss = val_ave_coarse_disp_loss / num_val_batch
-        val_ave_refine_disp_loss = val_ave_refine_disp_loss / num_val_batch
+        val_ave_loss /= num_val_batch
+        val_ave_coarse_cls_loss /= num_val_batch
+        val_ave_refine_cls_loss /= num_val_batch
+        val_ave_coarse_disp_loss /= num_val_batch
+        val_ave_refine_disp_loss /= num_val_batch
 
-        val_ave_coarse_acc = val_ave_coarse_acc / num_val_batch
-        val_ave_refine_acc = val_ave_refine_acc / num_val_batch
+        val_ave_coarse_acc /= num_val_batch
+        val_ave_refine_acc /= num_val_batch
         val_ave_coarse_pixel_acc = self.acc[2].eval(session=self.sess)
         val_ave_coarse_mIoU_acc = self.acc[3].eval(session=self.sess)
         val_ave_refine_pixel_acc = self.acc[4].eval(session=self.sess)

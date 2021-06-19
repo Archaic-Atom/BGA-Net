@@ -45,7 +45,7 @@ class Config:
         raise KeyError(name)
 
     def set_default(self, name, value):
-        if not name in self:
+        if name not in self:
             self[name] = value
 
     def __contains__(self, name):
