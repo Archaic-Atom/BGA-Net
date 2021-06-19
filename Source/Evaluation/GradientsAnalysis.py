@@ -10,7 +10,7 @@ def GradientsMAS(loss, lr):
     total = 0
     weights = 0
     for g, _ in grads:
-        total = total + 1
+        total += 1
         m = tf.reduce_max(g)
         n = tf.reduce_min(g)
         g = g - n
@@ -21,8 +21,8 @@ def GradientsMAS(loss, lr):
         var = tf.reduce_mean(tmp * tmp)
         var = tf.sqrt(var)
         # return var, mean
-        weights = weights + var
-        # weights = weights + tf.reduce_mean(tf.abs(g))
+        weights += var
+            # weights = weights + tf.reduce_mean(tf.abs(g))
 
     weights = weights / total * 2
     weights = tf.convert_to_tensor(weights,

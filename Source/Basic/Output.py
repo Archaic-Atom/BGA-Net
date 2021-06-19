@@ -54,14 +54,12 @@ def CreateResultFile(args):
         test_acc = args.outputDir + TEST_ACC_FILE
         if os.path.exists(test_acc):
             os.remove(test_acc)
-        fd_test_acc = open(test_acc, 'w')
-        return fd_test_acc
+        return open(test_acc, 'w')
 
 
 # create the output file
 def GenerateOutImgPath(dirPath, filenameFormat, imgType, num):
-    path = dirPath + filenameFormat % num + imgType
-    return path
+    return dirPath + filenameFormat % num + imgType
 
 
 # save the data
@@ -80,9 +78,7 @@ def OutputData(outputFile, data):
 # change the data
 def DepthToImgArray(mat):
     mat = np.array(mat)
-    #mat = mat.reshape(mat.shape[1], mat.shape[2])
-    imgArray = (mat * float(DEPTH_DIVIDING)).astype(np.uint16)
-    return imgArray
+    return (mat * float(DEPTH_DIVIDING)).astype(np.uint16)
 
 
 # save the png file

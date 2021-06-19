@@ -23,8 +23,7 @@ def GetPath(filename, num):
 
 
 def GenerateImgPath(dirPath, filenameFormat, imgType, num):
-    path = dirPath + filenameFormat % num + imgType
-    return path
+    return dirPath + filenameFormat % num + imgType
 
 
 # random, get org points
@@ -518,8 +517,7 @@ def GetDFCValImg(args, data_imgLs, data_imgRs, data_imgGrounds, data_cls_imgGrou
 
 
 def load_test_data(args):
-    files = glob.glob(args.testListPath + '*LEFT_RGB.tif')
-    return files
+    return glob.glob(args.testListPath + '*LEFT_RGB.tif')
 
 
 def GetDFCTestImg(args, data_imgLs, index):
